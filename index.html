@@ -35,6 +35,11 @@
                 max-height: 100vh;
             }
         }
+        /* Hide native branding */
+        video::-webkit-media-controls-overlay-play-button,
+        video::-webkit-media-text-track-container {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -46,12 +51,23 @@
     <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script>
-        // Setup HLS if needed
+        // Remove native branding (Tata Play)
         const video = document.getElementById('player');
+        video.addEventListener('loadedmetadata', function() {
+            const tracks = video.textTracks;
+            for (let i = 0; i < tracks.length; i++) {
+                tracks[i].mode = 'hidden';
+            }
+        });
+
+        // Setup HLS
         const streamUrl = "https://starsporthindii.pages.dev/index.m3u8";
         
         if (Hls.isSupported()) {
-            const hls = new Hls();
+            const hls = new Hls({
+                enableCEA708Captions: false, // Disable closed captions
+                renderTextTracks: false       // Hide text tracks
+            });
             hls.loadSource(streamUrl);
             hls.attachMedia(video);
             hls.on(Hls.Events.MANIFEST_PARSED, function() {
@@ -80,35 +96,52 @@
             ],
             ratio: '16:9',
             autoplay: true,
-            hideControls: false,
+            hideControls: true, // Start with hidden controls
             seekTime: 10,
-            storage: { enabled: false }
+            storage: { enabled: false },
+            listeners: {
+                hidden: () => document.querySelector('.plyr__controls').style.opacity = '0',
+                shown: () => document.querySelector('.plyr__controls').style.opacity = '1'
+            }
         });
 
-        // Handle fullscreen on mobile
+        // Auto-hide controls after 3 seconds
+        let controlsTimeout;
+        function hideControls() {
+            if (player.playing) {
+                player.toggleControls(false);
+            }
+        }
+        
+        function resetControlsTimer() {
+            clearTimeout(controlsTimeout);
+            player.toggleControls(true);
+            controlsTimeout = setTimeout(hideControls, 3000);
+        }
+
+        // Event listeners
+        player.on('ready', function() {
+            resetControlsTimer();
+            attemptFullscreen();
+        });
+        
+        player.on('play', resetControlsTimer);
+        player.on('controlsshown', resetControlsTimer);
+        player.on('controlshidden', () => clearTimeout(controlsTimeout));
+        
+        video.addEventListener('mousemove', resetControlsTimer);
+        video.addEventListener('touchstart', resetControlsTimer);
+
+        // Fullscreen handling
         function attemptFullscreen() {
             if (player.fullscreen.active) return;
-            
             try {
-                if (player.fullscreen.enter) {
-                    player.fullscreen.enter();
-                } else if (video.requestFullscreen) {
-                    video.requestFullscreen();
-                } else if (video.webkitRequestFullscreen) {
-                    video.webkitRequestFullscreen();
-                }
+                player.fullscreen.enter();
             } catch(e) {
                 console.log("Fullscreen error:", e);
             }
         }
-
-        // Attempt fullscreen on load
-        player.on('ready', attemptFullscreen);
         
-        // Re-attempt fullscreen on play
-        player.on('play', attemptFullscreen);
-        
-        // Handle orientation changes
         window.addEventListener('orientationchange', function() {
             setTimeout(attemptFullscreen, 300);
         });
