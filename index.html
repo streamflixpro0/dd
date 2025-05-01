@@ -1,98 +1,117 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sports Stream</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet">
+    <title>Live Stream Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <!-- Plyr CSS -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
         html, body {
             width: 100%;
             height: 100%;
             overflow: hidden;
             background: #000;
         }
-        
-        .video-wrapper {
+        #player-container {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
-        
-        .video-js {
+        #player {
             width: 100%;
             height: 100%;
-            max-width: 100%;
-            max-height: 100vh;
             object-fit: contain;
         }
-        
-        /* Mobile landscape fix */
-        @media screen and (orientation: landscape) {
-            .video-js {
-                max-height: 100%;
+        /* Landscape optimization */
+        @media (orientation: landscape) {
+            #player {
+                max-height: 100vh;
             }
         }
     </style>
 </head>
 <body>
-    <div class="video-wrapper">
-        <video id="video" class="video-js vjs-default-skin" controls autoplay playsinline></video>
+    <div id="player-container">
+        <video id="player" playsinline controls autoplay></video>
     </div>
 
-    <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
+    <!-- Plyr + HLS.js -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script>
-        const player = videojs('video', {
-            sources: [{
-                src: "https://starsporthindii.pages.dev/index.m3u8",
-                type: "application/x-mpegURL"
-            }],
-            fluid: true,
-            responsive: true,
-            aspectRatio: '16:9',
-            html5: {
-                vhs: {
-                    overrideNative: true
-                },
-                nativeAudioTracks: false,
-                nativeVideoTracks: false
-            }
+        // Setup HLS if needed
+        const video = document.getElementById('player');
+        const streamUrl = "https://starsporthindii.pages.dev/index.m3u8";
+        
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(streamUrl);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                video.play();
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = streamUrl;
+            video.addEventListener('loadedmetadata', function() {
+                video.play();
+            });
+        }
+
+        // Initialize Plyr player
+        const player = new Plyr('#player', {
+            controls: [
+                'play-large',
+                'play',
+                'progress',
+                'current-time',
+                'mute',
+                'volume',
+                'settings',
+                'pip',
+                'airplay',
+                'fullscreen'
+            ],
+            ratio: '16:9',
+            autoplay: true,
+            hideControls: false,
+            seekTime: 10,
+            storage: { enabled: false }
         });
 
-        // Handle orientation changes
-        window.addEventListener('orientationchange', function() {
-            setTimeout(function() {
-                player.dimensions(player.el().offsetWidth, player.el().offsetHeight);
-            }, 200);
-        });
-
-        // Auto fullscreen attempt (works when permitted)
-        player.ready(function() {
+        // Handle fullscreen on mobile
+        function attemptFullscreen() {
+            if (player.fullscreen.active) return;
+            
             try {
-                if (player.requestFullscreen) {
-                    player.requestFullscreen();
-                } else if (player.webkitRequestFullscreen) {
-                    player.webkitRequestFullscreen();
-                } else if (player.msRequestFullscreen) {
-                    player.msRequestFullscreen();
+                if (player.fullscreen.enter) {
+                    player.fullscreen.enter();
+                } else if (video.requestFullscreen) {
+                    video.requestFullscreen();
+                } else if (video.webkitRequestFullscreen) {
+                    video.webkitRequestFullscreen();
                 }
             } catch(e) {
                 console.log("Fullscreen error:", e);
             }
+        }
+
+        // Attempt fullscreen on load
+        player.on('ready', attemptFullscreen);
+        
+        // Re-attempt fullscreen on play
+        player.on('play', attemptFullscreen);
+        
+        // Handle orientation changes
+        window.addEventListener('orientationchange', function() {
+            setTimeout(attemptFullscreen, 300);
         });
     </script>
-    
-    <!-- For better HLS support on all devices -->
-    <script src="https://cdn.jsdelivr.net/npm/videojs-contrib-hls@5.15.0/dist/videojs-contrib-hls.min.js"></script>
 </body>
 </html>
