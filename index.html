@@ -2,36 +2,55 @@
 <html>
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IPL Live Stream</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: #f0f0f0;
         }
         .player-container {
-            max-width: 800px;
+            width: 100%;
+            max-width: 1000px;
             margin: 0 auto;
             background-color: #fff;
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         h1 {
             color: #333;
             text-align: center;
+            font-size: clamp(18px, 4vw, 24px);
+            margin: 10px 0;
+        }
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
+            overflow: hidden;
+            background-color: #000;
+            border-radius: 4px;
         }
         #video {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            background-color: #000;
+            height: 100%;
         }
         .status {
             margin-top: 10px;
             padding: 10px;
             border-radius: 4px;
             text-align: center;
+            font-size: clamp(14px, 3vw, 16px);
         }
         .loading {
             background-color: #fff3cd;
@@ -45,13 +64,31 @@
             background-color: #d4edda;
             color: #155724;
         }
+        /* Landscape phones and portrait tablets */
+        @media (max-width: 767px) {
+            .player-container {
+                padding: 10px;
+            }
+        }
+        /* Portrait phones */
+        @media (max-width: 480px) {
+            .player-container {
+                padding: 8px;
+                border-radius: 0;
+            }
+            .video-wrapper {
+                padding-bottom: 75%; /* More square aspect ratio for mobile */
+            }
+        }
     </style>
 </head>
 <body>
     <div class="player-container">
         <h1>IPL Live Stream</h1>
-        <video id="video" controls></video>
-        <div id="status" class="status">Loading player...</div>
+        <div class="video-wrapper">
+            <video id="video" controls playsinline></video>
+        </div>
+        <div id="status" class="status loading">Loading player...</div>
     </div>
 
     <script>
@@ -60,48 +97,99 @@
             const statusDiv = document.getElementById('status');
             const streamUrl = 'https://pstvplaylive.online/2025/ps_ipl-liv.m3u8?ps=hin';
             
-            if (Hls.isSupported()) {
-                const hls = new Hls();
-                
-                hls.loadSource(streamUrl);
-                hls.attachMedia(video);
-                
-                hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                    statusDiv.textContent = 'Stream loaded - click play to start';
-                    statusDiv.className = 'status playing';
-                    video.play().catch(e => {
-                        statusDiv.textContent = 'Autoplay blocked - please click play manually';
-                        statusDiv.className = 'status loading';
-                    });
-                });
-                
-                hls.on(Hls.Events.ERROR, function(event, data) {
-                    let errorType = data.type;
-                    let errorDetails = data.details;
-                    let errorFatal = data.fatal;
-                    
-                    statusDiv.textContent = `Error: ${errorDetails} (${errorType})`;
-                    statusDiv.className = 'status error';
-                    
-                    if (errorFatal) {
-                        hls.destroy();
-                    }
-                });
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                // For Safari/iOS devices
-                video.src = streamUrl;
-                video.addEventListener('loadedmetadata', function() {
-                    statusDiv.textContent = 'Stream loaded - click play to start';
-                    statusDiv.className = 'status playing';
-                    video.play().catch(e => {
-                        statusDiv.textContent = 'Autoplay blocked - please click play manually';
-                        statusDiv.className = 'status loading';
-                    });
-                });
-            } else {
-                statusDiv.textContent = 'Your browser does not support HLS streaming';
-                statusDiv.className = 'status error';
+            // Check for touch device to adjust controls
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints;
+            if (isTouchDevice) {
+                video.setAttribute('controls', 'true');
             }
+            
+            function initPlayer() {
+                if (Hls.isSupported()) {
+                    const hls = new Hls({
+                        maxBufferLength: 30,
+                        maxMaxBufferLength: 600,
+                        maxBufferSize: 60*1000*1000,
+                        maxBufferHole: 0.5,
+                    });
+                    
+                    hls.loadSource(streamUrl);
+                    hls.attachMedia(video);
+                    
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        statusDiv.textContent = 'Stream loaded - tap/click play to start';
+                        statusDiv.className = 'status playing';
+                        video.play().catch(e => {
+                            statusDiv.textContent = isTouchDevice 
+                                ? 'Tap the screen to play' 
+                                : 'Click play to start';
+                            statusDiv.className = 'status loading';
+                        });
+                    });
+                    
+                    hls.on(Hls.Events.ERROR, function(event, data) {
+                        let errorType = data.type;
+                        let errorDetails = data.details;
+                        let errorFatal = data.fatal;
+                        
+                        statusDiv.textContent = `Error: ${errorDetails} (${errorType})`;
+                        statusDiv.className = 'status error';
+                        
+                        if (errorFatal) {
+                            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                                statusDiv.textContent = 'Network error - trying to reconnect...';
+                                hls.startLoad();
+                            } else {
+                                hls.destroy();
+                                tryFallback();
+                            }
+                        }
+                    });
+                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    // For Safari/iOS devices
+                    video.src = streamUrl;
+                    video.addEventListener('loadedmetadata', function() {
+                        statusDiv.textContent = isTouchDevice 
+                            ? 'Tap the screen to play' 
+                            : 'Click play to start';
+                        statusDiv.className = 'status playing';
+                        video.play().catch(e => {
+                            statusDiv.textContent = isTouchDevice 
+                                ? 'Tap the screen to play' 
+                                : 'Click play to start';
+                            statusDiv.className = 'status loading';
+                        });
+                    });
+                } else {
+                    tryFallback();
+                }
+            }
+            
+            function tryFallback() {
+                // Try using native video element if all else fails
+                if (video.canPlayType('video/mp4')) {
+                    video.src = streamUrl.replace('.m3u8', '.mp4');
+                    statusDiv.textContent = 'Trying alternative stream...';
+                    video.play().catch(e => {
+                        statusDiv.textContent = isTouchDevice 
+                            ? 'Tap the screen to play' 
+                            : 'Click play to start';
+                        statusDiv.className = 'status loading';
+                    });
+                } else {
+                    statusDiv.textContent = 'Your browser does not support this streaming format';
+                    statusDiv.className = 'status error';
+                }
+            }
+            
+            initPlayer();
+            
+            // Handle orientation changes on mobile devices
+            window.addEventListener('orientationchange', function() {
+                setTimeout(function() {
+                    video.style.width = '100%';
+                    video.style.height = '100%';
+                }, 200);
+            });
         });
     </script>
 </body>
