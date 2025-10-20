@@ -5,23 +5,23 @@
 }
 
 :root {
-  --primary: #e91e63;
-  --bg-light: #fff9f9;
+  --primary: #c2185b;
+  --bg: #fdf6f0;
   --card-bg: #ffffff;
-  --text: #2c2c2c;
-  --shadow: rgba(233, 30, 99, 0.1);
+  --text: #333333;
+  --light-text: #666666;
 }
 
 body {
   font-family: 'Hind Siliguri', sans-serif;
-  background: var(--bg-light);
+  background-color: var(--bg);
   color: var(--text);
-  line-height: 1.7;
+  line-height: 1.8;
   padding: 20px;
 }
 
-.wrapper {
-  max-width: 768px;
+.container {
+  max-width: 720px;
   margin: 0 auto;
 }
 
@@ -31,85 +31,95 @@ header {
 }
 
 header h1 {
-  font-size: 2.4rem;
+  font-family: 'Playfair Display', serif;
+  font-size: 2.6rem;
   color: var(--primary);
-  margin-bottom: 8px;
   font-weight: 600;
+  margin-bottom: 10px;
 }
 
 header p {
-  color: #777;
-  font-family: 'Poppins', sans-serif;
-  font-size: 1.1rem;
+  color: var(--light-text);
+  font-size: 1.15rem;
 }
 
 .shayari-card {
   background: var(--card-bg);
-  padding: 24px;
-  border-radius: 16px;
-  margin-bottom: 24px;
-  box-shadow: 0 6px 18px var(--shadow);
-  border-left: 4px solid var(--primary);
+  padding: 28px;
+  margin-bottom: 28px;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(194, 24, 91, 0.08);
+  border-top: 2px solid var(--primary);
   position: relative;
-  transition: transform 0.2s;
-}
-
-.shayari-card:hover {
-  transform: translateY(-3px);
 }
 
 .shayari-card p {
-  font-size: 1.3rem;
-  margin-bottom: 20px;
-  line-height: 1.8;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  line-height: 1.9;
   white-space: pre-line;
+  font-style: italic;
+  color: #222;
 }
 
 .buttons {
+  margin-top: 18px;
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
 }
 
 .btn {
-  padding: 10px 18px;
+  padding: 9px 18px;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   font-size: 0.95rem;
-  transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 6px;
+  transition: all 0.2s;
 }
 
 .copy-btn {
-  background: #ffebee;
-  color: #c62828;
+  background: #fff0f5;
+  color: #ad1457;
 }
-.copy-btn:hover {
-  background: #ffcdd2;
-}
+.copy-btn:hover { background: #ffd1dc; }
 
 .share-btn {
-  background: #e3f2fd;
-  color: #1565c0;
+  background: #f0f8ff;
+  color: #0d47a1;
 }
-.share-btn:hover {
-  background: #bbdefb;
+.share-btn:hover { background: #bbdefb; }
+
+.admin-link {
+  text-align: center;
+  margin: 20px 0;
 }
+.admin-link a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.admin-link a:hover { text-decoration: underline; }
 
 footer {
   text-align: center;
-  margin-top: 50px;
-  color: #999;
+  margin-top: 40px;
+  color: var(--light-text);
   font-size: 0.95rem;
 }
 
-/* Responsive */
+.loading {
+  text-align: center;
+  color: var(--light-text);
+  font-style: italic;
+}
+
 @media (max-width: 600px) {
-  header h1 { font-size: 2rem; }
-  .shayari-card p { font-size: 1.15rem; }
+  .shayari-card p { font-size: 1.25rem; }
   .btn { width: 100%; justify-content: center; }
 }
