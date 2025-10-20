@@ -1,49 +1,51 @@
-// ✨ Shayari yahan add karein — bas array mein likho
-const shayariCollection = [
-  `तुम्हारे बिना जीना सीख लिया,\nअब तुम्हारे साथ मरना भूल गया।`,
-  `दिल टूटा तो शीशे की तरह नहीं टूटता,\nवो तो चुपचाप टूटता है… और ख़ामोशी से सहता है।`,
-  `मैं वो नहीं जो हर बार तुम्हारे पीछे भागूँ,\nमैं वो हूँ जो तुम्हारे जाने के बाद भी तुम्हारा इंतज़ार करूँ।`
-  // Naye shayari yahan comma ke saath add karein
-];
+// Load shayari from localStorage
+function loadShayari() {
+  const feed = document.getElementById('shayari-feed');
+  const saved = localStorage.getItem('myShayari');
+  const shayariList = saved ? JSON.parse(saved) : [
+    "तुम्हारे जाने से घर सूना हो गया,\nमगर दिल तो पहले ही सूना था।",
+    "मैंने तुम्हें भुलाने की कोशिश की,\nपर हर कोशिश में तुम याद आ गए।"
+  ];
 
-// DOM mein shayari dikhao
-const container = document.getElementById('shayari-list');
-shayariCollection.forEach(text => {
-  const card = document.createElement('div');
-  card.className = 'shayari-card';
-  card.innerHTML = `
-    <p>${text}</p>
-    <div class="buttons">
-      <button class="btn copy-btn" onclick="copyShayari(this, \`${text.replace(/`/g, '\\`')}\`)">📋 कॉपी</button>
-      <button class="btn share-btn" onclick="shareShayari(\`${text.replace(/`/g, '\\`')}\`)">📤 शेयर</button>
-    </div>
-  `;
-  container.appendChild(card);
-});
+  if (shayariList.length === 0) {
+    feed.innerHTML = '<p class="loading">अभी तक कोई शायरी नहीं जोड़ी गई।</p>';
+    return;
+  }
 
-// Copy function
-function copyShayari(btn, text) {
-  navigator.clipboard.writeText(text).then(() => {
-    const original = btn.innerHTML;
-    btn.innerHTML = '✅ कॉपी हुआ!';
-    setTimeout(() => btn.innerHTML = original, 1500);
+  feed.innerHTML = '';
+  shayariList.forEach((text, i) => {
+    const card = document.createElement('div');
+    card.className = 'shayari-card';
+    card.innerHTML = `
+      <p>${text}</p>
+      <div class="buttons">
+        <button class="btn copy-btn" onclick="copyText(${i})">📋 कॉपी</button>
+        <button class="btn share-btn" onclick="shareText(${i})">📤 शेयर</button>
+      </div>
+    `;
+    feed.appendChild(card);
   });
 }
 
-// Share function
-function shareShayari(text) {
-  const url = window.location.href;
-  const fullText = `${text}\n\n— मेरी शायरी\n${url}`;
+function copyText(index) {
+  const saved = JSON.parse(localStorage.getItem('myShayari') || '[]');
+  navigator.clipboard.writeText(saved[index]).then(() => {
+    alert('शायरी कॉपी हो गई!');
+  });
+}
+
+function shareText(index) {
+  const saved = JSON.parse(localStorage.getItem('myShayari') || '[]');
+  const text = saved[index];
+  const url = window.location.origin + window.location.pathname;
 
   if (navigator.share) {
-    navigator.share({
-      title: 'मेरी शायरी',
-      text: text,
-      url: url
-    }).catch(err => console.log('Share cancelled', err));
+    navigator.share({ title: 'मेरी शायरी', text, url });
   } else {
-    navigator.clipboard.writeText(fullText).then(() => {
-      alert('शायरी + लिंक कॉपी हो गया!');
-    });
+    navigator.clipboard.writeText(`${text}\n\n— मेरी शायरी\n${url}`);
+    alert('शायरी + लिंक कॉपी हो गया!');
   }
 }
+
+// Load on start
+loadShayari();
